@@ -2,104 +2,103 @@ import { useEffect, useRef, useState } from "react";
 
 export function Items() {
     const [items, setItems] = useState([]);
-    const [page, setPage] = useState(1); // Added state for pagination
+    const [page, setPage] = useState(1);
     const itemNameRef = useRef();
     const itemCategoryRef = useRef();
     const itemPriceRef = useRef();
 
-    // 1. Load Items from Backend with Pagination
     async function loadItems() {
         try {
-            // Updated URL to include pagination query parameters
             const response = await fetch(`http://localhost:3000/api/item?page=${page}`);
             const data = await response.json();
             setItems(data);
         } catch (err) {
-            console.error("==> err : ", err);
-            alert("Loading items failed");
+            alert("Loading failed");
         }
     }
 
     async function onDelete(id) {
-        if (!confirm("Are you sure you want to delete this item?")) return;
-        try {
-            const uri = `http://localhost:3000/api/item/${id}`; 
-            const result = await fetch(uri, { method: "DELETE" });
-            if (result.ok) {
-                loadItems(); 
-            } else {
-                alert("Delete failed");
-            }
-        } catch (err) {
-            console.error("Delete error:", err);
-        }
+        if (!confirm("Delete this item?")) return;
+        await fetch(`http://localhost:3000/api/item/${id}`, { method: "DELETE" });
+        loadItems();
     }
 
-    // 3. Save New Item with required properties
     async function onItemSave() {
-        const uri = "http://localhost:3000/api/item";
         const body = {
             name: itemNameRef.current.value,
             category: itemCategoryRef.current.value,
-            price: itemPriceRef.current.value,
-            // Backend will handle adding status: "ACTIVE"
+            price: itemPriceRef.current.value
         };
-        
-        await fetch(uri, {
+        await fetch("http://localhost:3000/api/item", {
             method: "POST",
-            body: JSON.stringify(body) // Stringify is required
+            body: JSON.stringify(body)
         });
-        loadItems(); // Refresh list after insert
+        itemNameRef.current.value = "";
+        itemPriceRef.current.value = "";
+        loadItems();
     }
 
-    // Reload items whenever the page number changes
-    useEffect(() => { 
-        console.log("==> Init...");
-        loadItems(); 
-    }, [page]); 
+    useEffect(() => { loadItems(); }, [page]);
 
     return (
-        <>
-            <table>
+        <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+            <h2 style={{ color: "#333" }}>Item Management</h2>
+            <table style={{ width: "100%", borderCollapse: "collapse", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
                 <thead>
-                    <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Actions</th></tr>
+                    <tr style={{ backgroundColor: "#f4f4f4", textAlign: "left" }}>
+                        <th style={{ padding: "12px" }}>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Status</th> 
+                        <th>Actions</th>
+                    </tr>
                 </thead>
                 <tbody>
                     {items.map((item, index) => (
-                        <tr key={index}>
-                            <td>{item._id}</td>
-                            <td>{item.itemName}</td>
+                        <tr key={index} style={{ borderBottom: "1px solid #ddd" }}>
+                            <td style={{ padding: "12px" }}>{item.itemName}</td>
                             <td>{item.itemCategory}</td>
-                            <td>{item.itemPrice}</td>
+                            <td>${item.itemPrice}</td>
+                            {/* Added Status Badge */}
                             <td>
-                                {/* Navigation to edit page */}
-                                <a href={`/items/${item._id}`}>Edit</a>
-                                <button onClick={() => onDelete(item._id)} style={{marginLeft: "10px"}}>Delete</button>
+                                <span style={{ 
+                                    backgroundColor: "#e6fffa", 
+                                    color: "#2c7a7b", 
+                                    padding: "4px 8px", 
+                                    borderRadius: "4px", 
+                                    fontSize: "0.8rem", 
+                                    fontWeight: "bold" 
+                                }}>
+                                    {item.status || "ACTIVE"}
+                                </span>
+                            </td>
+                            <td>
+                                <a href={`/items/${item._id}`} style={{ color: "#007bff", textDecoration: "none", marginRight: "10px" }}>Edit</a>
+                                <button onClick={() => onDelete(item._id)} style={{ backgroundColor: "#ff4d4d", color: "white", border: "none", padding: "5px 10px", borderRadius: "4px", cursor: "pointer" }}>Delete</button>
                             </td>
                         </tr>
                     ))}
-                    <tr>
-                        <td>-</td>
-                        <td><input type="text" ref={itemNameRef}/></td>
+                    <tr style={{ backgroundColor: "#fafafa" }}>
+                        <td><input ref={itemNameRef} placeholder="Item Name" style={{ padding: "8px", width: "90%" }} /></td>
                         <td>
-                            <select ref={itemCategoryRef}>
+                            <select ref={itemCategoryRef} style={{ padding: "8px" }}>
                                 <option>Stationary</option>
                                 <option>Kitchenware</option>
                                 <option>Appliance</option>
                             </select>
                         </td>
-                        <td><input type="text" ref={itemPriceRef}/></td>
-                        <td><button onClick={onItemSave}>Add Item</button></td>
+                        <td><input ref={itemPriceRef} placeholder="Price" style={{ padding: "8px", width: "80px" }} /></td>
+                        <td></td> 
+                        <td><button onClick={onItemSave} style={{ backgroundColor: "#28a745", color: "white", border: "none", padding: "8px 15px", borderRadius: "4px", cursor: "pointer" }}>+ Add</button></td>
                     </tr>
                 </tbody>
             </table>
 
-            {/* Pagination Controls required by instructions */}
-            <div style={{ marginTop: "20px" }}>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</button>
-                <span style={{ margin: "0 15px" }}>Page {page}</span>
-                <button onClick={() => setPage(p => p + 1)}>Next</button>
+            <div style={{ marginTop: "20px", textAlign: "center" }}>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} style={{ padding: "8px 15px", margin: "5px", cursor: "pointer" }}>Prev</button>
+                <span style={{ fontWeight: "bold" }}>Page {page}</span>
+                <button onClick={() => setPage(p => p + 1)} style={{ padding: "8px 15px", margin: "5px", cursor: "pointer" }}>Next</button>
             </div>
-        </>
+        </div>
     );
 }
